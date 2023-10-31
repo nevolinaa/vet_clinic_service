@@ -3,7 +3,7 @@ from fastapi import FastAPI, Path
 from fastapi.exceptions import HTTPException
 
 from pydantic import BaseModel
-from typing import List, Annotated
+from typing import List
 
 app = FastAPI()
 
@@ -83,13 +83,13 @@ def create_dog(new_dog: List[Dog]):
 
 # 6. реализация получения собаки по id
 @app.get('/dog/{pk}')
-def get_dog_by_pk(pk: Annotated[int, Path(ge=0)]):
+def get_dog_by_pk(pk: int):
     return dogs_db[pk]
 
 
 # 8. реализация обновления собаки по id
 @app.patch('/dog/{pk}')
-def update_dog(pk: Annotated[int, Path(ge=0, le=len(dogs_db))], dog: List[Dog]):
+def update_dog(pk: int, dog: List[Dog]):
     dogs_db[pk] = dog
     return dogs_db[pk]
 
