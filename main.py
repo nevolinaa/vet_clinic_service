@@ -1,9 +1,10 @@
 from enum import Enum
 from fastapi import FastAPI, Path
 from fastapi.exceptions import HTTPException
+from fastapi.encoders import jsonable_encoder
 
 from pydantic import BaseModel
-from typing import List
+
 
 app = FastAPI()
 
@@ -41,38 +42,31 @@ post_db = [
 ]
 
 
-# 1. реализация пути /
+# реализация пути /
 @app.get('/')
 def root():
-    return None
+    return {"message": "Welcome to The Vet Clinic Service!"}
 
 
-# 2. реализация пути /post
+# реализация пути /post
 @app.post('/post')
-def get_post(new_timestamp: List[Timestamp]):
+def get_post(new_timestamp: Timestamp):
     if new_timestamp.id in post_db:
         raise HTTPException(status_code=409,
                             detail="The specified id already exists.")
     else:
-        post_db[new_timestamp.id] = new_timestamp
+        post_db.append(new_timestamp)
     return new_timestamp
 
-
-# 5. реализация получения списка собак
-@app.get('/dog')
-def get_all_dogs():
-    return dogs_db
-
-
-# 7. реализация получения собак по типу
+# реализация получения собак по типу
 @app.get('/dog')
 def get_dogs(kind: DogType):
-    return [dogs_db[dog] for dog in dogs_db if dogs_db[dog].kind == kind]
+    return [dog for dog in dogs_db.values() if dog.kind == kind]
 
 
-# 4. реализация записи собак
+# реализация записи собак
 @app.post('/dog')
-def create_dog(new_dog: List[Dog]):
+def create_dog(new_dog: Dog):
     if new_dog.pk in dogs_db:
         raise HTTPException(status_code=409,
                             detail="The specified PK already exists.")
@@ -81,15 +75,18 @@ def create_dog(new_dog: List[Dog]):
         return new_dog
 
 
-# 6. реализация получения собаки по id
+# реализация получения собаки по id
 @app.get('/dog/{pk}')
 def get_dog_by_pk(pk: int):
     return dogs_db[pk]
 
 
-# 8. реализация обновления собаки по id
-@app.patch('/dog/{pk}')
-def update_dog(pk: int, dog: List[Dog]):
-    dogs_db[pk] = dog
-    return dogs_db[pk]
+# реализация обновления собаки по id
+@app.patch("/dog/{pk}", response_model=Dog)
+def update_dog(pk: int, new_dog: Dog):
+    stored_dog_data = dogs_db[pk]
+    update_data = new_dog.dict(exclude_unset=True)
+    updated_dog = stored_dog_data.copy(update=update_data)
+    dogs_db[pk] = jsonable_encoder(updated_dog)
+    return updated_dog
 
