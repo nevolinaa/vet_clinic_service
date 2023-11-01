@@ -1,10 +1,7 @@
 from enum import Enum
 from fastapi import FastAPI, Path
 from fastapi.exceptions import HTTPException
-from fastapi.encoders import jsonable_encoder
-
 from pydantic import BaseModel
-
 
 app = FastAPI()
 
@@ -13,6 +10,7 @@ class DogType(str, Enum):
     terrier = "terrier"
     bulldog = "bulldog"
     dalmatian = "dalmatian"
+    all_kinds = "None"
 
 
 class Dog(BaseModel):
@@ -51,17 +49,20 @@ def root():
 # реализация пути /post
 @app.post('/post')
 def get_post(new_timestamp: Timestamp):
-    if new_timestamp.id in post_db:
-        raise HTTPException(status_code=409,
-                            detail="The specified id already exists.")
-    else:
-        post_db.append(new_timestamp)
+    for timestamp in post_db:
+        if timestamp.id == new_timestamp.id:
+            raise HTTPException(status_code=409,
+                                detail="The specified id already exists.")
+    post_db.append(new_timestamp)
     return new_timestamp
 
-# реализация получения собак по типу
+# реализация получения собак по типу и получения всего списка собак, если тип не указан
 @app.get('/dog')
 def get_dogs(kind: DogType):
-    return [dog for dog in dogs_db.values() if dog.kind == kind]
+    if kind == "None":
+        return [dog for dog in dogs_db.values()]
+    else:
+        return [dog for dog in dogs_db.values() if dog.kind == kind]
 
 
 # реализация записи собак
@@ -70,23 +71,25 @@ def create_dog(new_dog: Dog):
     if new_dog.pk in dogs_db:
         raise HTTPException(status_code=409,
                             detail="The specified PK already exists.")
-    else:
-        dogs_db[new_dog.pk] = new_dog
-        return new_dog
+    dogs_db[new_dog.pk] = new_dog
+    return new_dog
 
 
 # реализация получения собаки по id
 @app.get('/dog/{pk}')
 def get_dog_by_pk(pk: int):
+    if pk not in dogs_db:
+        raise HTTPException(status_code=409,
+                            detail="The specified PK doesn't exist.")
     return dogs_db[pk]
 
 
 # реализация обновления собаки по id
 @app.patch("/dog/{pk}", response_model=Dog)
 def update_dog(pk: int, new_dog: Dog):
-    stored_dog_data = dogs_db[pk]
-    update_data = new_dog.dict(exclude_unset=True)
-    updated_dog = stored_dog_data.copy(update=update_data)
-    dogs_db[pk] = jsonable_encoder(updated_dog)
-    return updated_dog
+    if pk not in dogs_db:
+        raise HTTPException(status_code=409,
+                            detail="The specified PK doesn't exist.")
+    dogs_db[pk] = new_dog
+    return new_dog
 
