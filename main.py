@@ -10,7 +10,7 @@ class DogType(str, Enum):
     terrier = "terrier"
     bulldog = "bulldog"
     dalmatian = "dalmatian"
-    all_kinds = "None"
+    all_kinds = "all_kinds"
 
 
 class Dog(BaseModel):
@@ -59,7 +59,7 @@ def get_post(new_timestamp: Timestamp):
 # реализация получения собак по типу и получения всего списка собак, если тип не указан
 @app.get('/dog')
 def get_dogs(kind: DogType):
-    if kind == "None":
+    if kind == "all_kinds":
         return [dog for dog in dogs_db.values()]
     else:
         return [dog for dog in dogs_db.values() if dog.kind == kind]
